@@ -300,7 +300,9 @@
   // ---------------------------------------------------------------------
   const SUPABASE_URL = 'https://pablddtdqtqnchkoulrj.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYmxkZHRkcXRxbmNoa291bHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTg4NDcsImV4cCI6MjEwNTY3NDg0N30.jySQlW5IGxp-MWhYNxQ0NLxwlNSQk5CM-gJjVcQhV7U';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  // Renamed client instance variable to avoid collision with global window.supabase SDK
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // Maps the ESP32 firmware's int enums to the strings this page expects.
   // Mood: M_HAPPY=0, M_DEFAULT=1, M_SAD=2, M_ANGRY=3
@@ -387,7 +389,7 @@
   }
 
   async function loadDevices() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('devices')
       .select(`
         device_id, display_name, section,
