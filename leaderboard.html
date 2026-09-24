@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TamaGrow — Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #12201a;
+    --bg-grid: #16261e;
+    --surface: #1b2b22;
+    --surface-2: #223529;
+    --border: #2e4433;
+    --amber: #e8a33d;
+    --amber-dim: #6b5427;
+    --green: #8fbf77;
+    --green-dim: #3a4d34;
+    --coral: #e2664b;
+    --coral-dim: #4d3229;
+    --text: #f2eee1;
+    --text-dim: #a9b8ac;
+    --text-faint: #6f8272;
+  }
+
+  * { box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: clamp(20px, 4vw, 56px);
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 40px);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .wordmark .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 4px var(--green-dim);
+  }
+  .wordmark .sub {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+
+  .sync-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: right;
+    line-height: 1.6;
+  }
+  .sync-status .live {
+    color: var(--green);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .stat-card .num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 1;
+  }
+  .stat-card .label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .stat-card.happy .num { color: var(--green); }
+  .stat-card.attention .num { color: var(--coral); }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin: 32px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .board { display: flex; flex-direction: column; gap: 10px; }
+
+  .row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 40px 44px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .row:hover { border-color: var(--amber-dim); }
+  .row.rank-1 { border-color: var(--amber); background: linear-gradient(135deg, var(--surface), var(--surface-2)); }
+
+  .rank {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--text-faint);
+    text-align: center;
+  }
+  .row.rank-1 .rank { color: var(--amber); }
+
+  .plant-icon { width: 44px; height: 44px; flex-shrink: 0; }
+
+  .device-info { min-width: 0; }
+  .device-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .section-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    text-transform: uppercase;
+  }
+  .mood-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .mood-happy { background: var(--green-dim); color: var(--green); }
+  .mood-neutral { background: var(--surface-2); color: var(--text-dim); }
+  .mood-sad, .mood-angry { background: var(--coral-dim); color: var(--coral); }
+
+  .readings {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .readings span b { color: var(--text); font-weight: 500; }
+
+  .progress-block { text-align: right; min-width: 130px; }
+  .level-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .level-line b { color: var(--amber); font-weight: 500; }
+  .xp-bar {
+    width: 130px;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .xp-fill { height: 100%; background: var(--amber); border-radius: 4px; }
+
+  .control-note {
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-faint);
+    font-size: 13px;
+    text-align: center;
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-faint);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 30px 36px 1fr; }
+    .progress-block { grid-column: 1 / -1; text-align: left; margin-top: 8px; }
+    .xp-bar { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="wordmark">
+      <span class="dot"></span>TamaGrow<span class="sub">Leaderboard</span>
+    </div>
+    <div class="sync-status">
+      <div class="live" id="syncState">syncing every 15s</div>
+      <div id="lastUpdated">last update —</div>
+    </div>
+  </header>
+
+  <div class="stats" id="statsRow"></div>
+
+  <div class="section-label">Standings</div>
+  <div class="board" id="board"></div>
+
+  <div class="section-label">Comparison Section</div>
+  <div class="control-note">Section 7-C (traditional method) — no device, tracked separately for the study</div>
+
+  <footer>
+    <span>TamaGrow Pilot &middot; Batch 1</span>
+    <span id="clock"></span>
+  </footer>
+
+</div>
+
+<script>
+  // ---------------------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // SUPABASE CONFIG — fill in your project's URL and anon key.
+  // The anon key is safe to ship client-side as long as Row Level
+  // Security policies restrict what it can do (read-only here).
+  // ---------------------------------------------------------------------
+  const SUPABASE_URL = 'https://pablddtdqtqnchkoulrj.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_e1tfeb_t_cbfIc6nSCatMw_guJV0CAZ';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Maps the ESP32 firmware's int enums to the strings this page expects.
+  // Mood: M_HAPPY=0, M_DEFAULT=1, M_SAD=2, M_ANGRY=3
+  const MOOD_NAMES = ['happy', 'neutral', 'sad', 'angry'];
+  // PlantState: SEEDLING=0, SPROUT=1, SPROUT2=2, PLANT=3, FLOWERING=4, BEANS=5
+  const STAGE_NAMES = ['seedling', 'sprout', 'sprout2', 'plant', 'flowering', 'beans'];
+
+  const XP_PER_LEVEL = 100;
+  const PLANT_ICONS = {
+    seedling: `<circle cx="22" cy="34" r="3" fill="currentColor"/><path d="M22 34 V26" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>`,
+    sprout: `<circle cx="22" cy="36" r="3" fill="currentColor"/><path d="M22 36 V22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M22 26 C16 26 14 20 14 20 C14 20 20 18 22 26 Z" fill="currentColor" opacity="0.85"/>`,
+    sprout2: `<circle cx="22" cy="37" r="3" fill="currentColor"/><path d="M22 37 V18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M22 26 C15 26 12 19 12 19 C12 19 19 16 22 26 Z" fill="currentColor" opacity="0.85"/><path d="M22 22 C29 22 32 15 32 15 C32 15 25 12 22 22 Z" fill="currentColor" opacity="0.65"/>`,
+    plant: `<circle cx="22" cy="38" r="3" fill="currentColor"/><path d="M22 38 V14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M22 28 C14 28 11 20 11 20 C11 20 19 17 22 28 Z" fill="currentColor" opacity="0.85"/><path d="M22 22 C30 22 33 14 33 14 C33 14 25 11 22 22 Z" fill="currentColor" opacity="0.65"/><path d="M22 16 C16 16 14 10 14 10 C14 10 20 8 22 16 Z" fill="currentColor" opacity="0.5"/>`,
+    flowering: `<circle cx="22" cy="38" r="3" fill="currentColor"/><path d="M22 38 V16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M22 28 C14 28 11 20 11 20 C11 20 19 17 22 28 Z" fill="currentColor" opacity="0.8"/><path d="M22 22 C30 22 33 14 33 14 C33 14 25 11 22 22 Z" fill="currentColor" opacity="0.6"/><circle cx="22" cy="9" r="5" fill="currentColor"/><circle cx="16" cy="12" r="3.2" fill="currentColor" opacity="0.7"/><circle cx="28" cy="12" r="3.2" fill="currentColor" opacity="0.7"/>`,
+    beans: `<circle cx="22" cy="38" r="3" fill="currentColor"/><path d="M22 38 V16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M22 28 C14 28 11 20 11 20 C11 20 19 17 22 28 Z" fill="currentColor" opacity="0.75"/><path d="M22 22 C30 22 33 14 33 14 C33 14 25 11 22 22 Z" fill="currentColor" opacity="0.55"/><ellipse cx="22" cy="12" rx="4" ry="7" fill="currentColor"/>`,
+  };
+
+  function plantIcon(stage, colorVar) {
+    const paths = PLANT_ICONS[stage] || PLANT_ICONS.seedling;
+    return `<svg class="plant-icon" viewBox="0 0 44 44" style="color:${colorVar}">${paths}</svg>`;
+  }
+
+  function moodClass(mood) { return 'mood-' + mood; }
+
+  function timeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    return Math.floor(s / 3600) + 'h ago';
+  }
+
+  function render(devices) {
+    const sorted = [...devices].sort((a, b) => (b.level * XP_PER_LEVEL + b.xp) - (a.level * XP_PER_LEVEL + a.xp));
+
+    const happy = devices.filter(d => d.mood === 'happy').length;
+    const attention = devices.filter(d => d.mood === 'sad' || d.mood === 'angry').length;
+
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card">
+        <div class="num">${devices.length}</div>
+        <div class="label">Total Devices</div>
+      </div>
+      <div class="stat-card happy">
+        <div class="num">${happy}</div>
+        <div class="label">Happy Plants</div>
+      </div>
+      <div class="stat-card attention">
+        <div class="num">${attention}</div>
+        <div class="label">Need Attention</div>
+      </div>
+    `;
+
+    document.getElementById('board').innerHTML = sorted.map((d, i) => {
+      const rank = i + 1;
+      const iconColor = d.mood === 'happy' ? 'var(--green)' : d.mood === 'sad' || d.mood === 'angry' ? 'var(--coral)' : 'var(--text-dim)';
+      const xpPct = Math.min(100, (d.xp / XP_PER_LEVEL) * 100);
+      return `
+        <div class="row ${rank === 1 ? 'rank-1' : ''}">
+          <div class="rank">${rank}</div>
+          ${plantIcon(d.plant_stage, iconColor)}
+          <div class="device-info">
+            <div class="device-name">
+              ${d.display_name}
+              <span class="section-tag">${d.section}</span>
+              <span class="mood-badge ${moodClass(d.mood)}">${d.mood}</span>
+            </div>
+            <div class="readings">
+              <span>MOIST <b>${d.moisture}%</b></span>
+              <span>LIGHT <b>${d.light}%</b></span>
+              <span>TEMP <b>${d.temp}&deg;C</b></span>
+              <span>&middot; ${timeAgo(d.last_updated)}</span>
+            </div>
+          </div>
+          <div class="progress-block">
+            <div class="level-line">LV <b>${d.level}</b> &middot; ${d.xp}/${XP_PER_LEVEL} XP</div>
+            <div class="xp-bar"><div class="xp-fill" style="width:${xpPct}%"></div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('lastUpdated').textContent =
+      'last update ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  async function loadDevices() {
+    const { data, error } = await supabase
+      .from('devices')
+      .select(`
+        device_id, display_name, section,
+        device_state ( moisture, light, temp, mood, plant_state, level, xp, updated_at )
+      `);
+
+    if (error) {
+      console.error('Supabase fetch failed:', error);
+      return [];
+    }
+
+    return (data || [])
+      .filter(d => d.device_state)
+      .map(d => ({
+        device_id: d.device_id,
+        display_name: d.display_name,
+        section: d.section || '\u2014',
+        moisture: d.device_state.moisture,
+        light: d.device_state.light,
+        temp: d.device_state.temp,
+        mood: MOOD_NAMES[d.device_state.mood] ?? 'neutral',
+        level: d.device_state.level,
+        xp: d.device_state.xp,
+        plant_stage: STAGE_NAMES[d.device_state.plant_state] ?? 'seedling',
+        last_updated: new Date(d.device_state.updated_at).getTime(),
+      }));
+  }
+
+  async function tick() {
+    render(await loadDevices());
+  }
+
+  function updateClock() {
+    document.getElementById('clock').textContent = new Date().toLocaleString([], {
+      weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  tick();
+  updateClock();
+  setInterval(tick, 15000);
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

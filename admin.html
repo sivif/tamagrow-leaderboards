@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TamaGrow — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #12201a;
+    --bg-grid: #16261e;
+    --surface: #1b2b22;
+    --surface-2: #223529;
+    --border: #2e4433;
+    --amber: #e8a33d;
+    --amber-dim: #6b5427;
+    --green: #8fbf77;
+    --green-dim: #3a4d34;
+    --coral: #e2664b;
+    --coral-dim: #4d3229;
+    --text: #f2eee1;
+    --text-dim: #a9b8ac;
+    --text-faint: #6f8272;
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ---------------- Gate screen ---------------- */
+  #gate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .gate-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+  }
+  .gate-card .tag-icon {
+    width: 40px; height: 40px;
+    margin: 0 auto 18px;
+    color: var(--amber);
+  }
+  .gate-card h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px;
+    margin: 0 0 6px;
+  }
+  .gate-card p {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 0 0 24px;
+  }
+  #pinInput {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    letter-spacing: 0.3em;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  #pinInput:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: var(--amber); }
+  .gate-error {
+    color: var(--coral);
+    font-size: 12px;
+    min-height: 16px;
+    margin-bottom: 10px;
+  }
+  .btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    cursor: pointer;
+    transition: transform 0.1s ease, filter 0.15s ease;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:active { transform: scale(0.98); }
+  .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .btn-primary { background: var(--amber); color: #1b1305; width: 100%; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-danger { background: var(--coral-dim); color: var(--coral); border: 1px solid var(--coral-dim); }
+  .btn-danger:hover { background: var(--coral); color: #2a0f08; }
+  .btn-small { padding: 7px 12px; font-size: 12px; }
+
+  .gate-note {
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ---------------- Main app ---------------- */
+  #app { display: none; padding: clamp(20px, 4vw, 56px); }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(26px, 4vw, 36px);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .wordmark .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px var(--amber-dim); }
+  .wordmark .sub {
+    font-weight: 500; font-size: 14px; color: var(--text-dim);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-left: 4px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-faint); margin: 32px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* device tag cards */
+  .device-grid { display: flex; flex-direction: column; gap: 12px; }
+  .device-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    align-items: start;
+  }
+  .device-card .id-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 1px 7px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .field-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .field {
+    flex: 1;
+    min-width: 140px;
+  }
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid var(--amber); outline-offset: 1px; border-color: var(--amber); }
+
+  .card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+    min-width: 130px;
+  }
+  .save-hint {
+    font-size: 11px;
+    color: var(--green);
+    text-align: center;
+    height: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .save-hint.show { opacity: 1; }
+
+  .status-row {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+
+  .reset-all-bar {
+    background: var(--surface);
+    border: 1px solid var(--coral-dim);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .reset-all-bar .copy { font-size: 13px; color: var(--text-dim); max-width: 480px; }
+  .reset-all-bar .copy b { color: var(--text); }
+
+  /* action log */
+  .log { display: flex; flex-direction: column; gap: 6px; }
+  .log-row {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .log-row .t { color: var(--text-faint); min-width: 70px; }
+  .log-row .action-tag {
+    font-weight: 500;
+    padding: 0 6px;
+    border-radius: 4px;
+  }
+  .log-row .action-rename { color: var(--amber); background: var(--amber-dim); }
+  .log-row .action-reset { color: var(--coral); background: var(--coral-dim); }
+
+  /* modal */
+  .modal-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(8, 14, 10, 0.7);
+    align-items: center; justify-content: center;
+    z-index: 10;
+    padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--surface-2);
+    border: 1px solid var(--coral-dim);
+    border-radius: 14px;
+    padding: 28px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .modal h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    margin: 0 0 10px;
+    color: var(--coral);
+  }
+  .modal p { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0 0 20px; }
+  .modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  @media (max-width: 620px) {
+    .device-card { grid-template-columns: 1fr; }
+    .card-actions { flex-direction: row; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= GATE ======================= -->
+<div id="gate">
+  <div class="gate-card">
+    <svg class="tag-icon" viewBox="0 0 44 44" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M8 20 L20 8 H34 V22 L22 34 Z" stroke-linejoin="round"/>
+      <circle cx="27" cy="15" r="2.5" fill="currentColor" stroke="none"/>
+    </svg>
+    <h1>Admin Access</h1>
+    <p>Enter the pilot admin PIN to manage devices.</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="&bull; &bull; &bull; &bull;" autofocus>
+    <div class="gate-error" id="gateError"></div>
+    <button class="btn btn-primary" onclick="tryUnlock()">Unlock</button>
+    <div class="gate-note">demo PIN: 1234 — no backend wired yet</div>
+  </div>
+</div>
+
+<!-- ======================= APP ======================= -->
+<div id="app">
+<div class="wrap">
+
+  <header>
+    <div class="wordmark"><span class="dot"></span>TamaGrow<span class="sub">Admin</span></div>
+    <button class="btn btn-ghost btn-small" onclick="lock()">Lock</button>
+  </header>
+
+  <div class="section-label">Manage Devices</div>
+  <div class="device-grid" id="deviceGrid"></div>
+
+  <div class="section-label">Danger Zone</div>
+  <div class="reset-all-bar">
+    <div class="copy">
+      <b>Reset all devices</b> — closes the current trial for every device and starts a fresh one. Nothing is deleted; past trial data stays queryable.
+    </div>
+    <button class="btn btn-danger" onclick="confirmResetAll()">Reset All Devices</button>
+  </div>
+
+  <div class="section-label">Recent Actions</div>
+  <div class="log" id="actionLog"></div>
+
+  <footer>TamaGrow Pilot &middot; Admin console &middot; static preview, no backend connected</footer>
+
+</div>
+</div>
+
+<!-- ======================= MODAL ======================= -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2 id="modalTitle">Reset device?</h2>
+    <p id="modalBody">This closes the current trial and starts a new one. Past data is kept, not deleted.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-small" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger btn-small" id="modalConfirmBtn">Confirm Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------------------------------------------------------------------
+  // ---------------------------------------------------------------------
+  // SUPABASE CONFIG - fill in your project's URL and anon key.
+  // Admin write access currently relies only on the client-side PIN below
+  // plus the anon key's Supabase permissions (kept simple for now per
+  // project decision - not hardened with real auth or RLS session gating).
+  // ---------------------------------------------------------------------
+  const SUPABASE_URL = 'https://pablddtdqtqnchkoulrj.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_e1tfeb_t_cbfIc6nSCatMw_guJV0CAZ';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const DEMO_PIN = '1234';
+
+  let devices = [];
+  let actionLog = [];
+
+  function tryUnlock() {
+    const val = document.getElementById('pinInput').value;
+    if (val === DEMO_PIN) {
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      renderAll();
+    } else {
+      document.getElementById('gateError').textContent = 'Incorrect PIN. Try again.';
+    }
+  }
+  document.getElementById('pinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') tryUnlock();
+  });
+
+  function lock() {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('gateError').textContent = '';
+  }
+
+  function timeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  async function fetchDevices() {
+    const { data, error } = await supabase
+      .from('devices')
+      .select(`
+        device_id, display_name, section,
+        device_state ( updated_at )
+      `);
+    if (error) {
+      console.error('Failed to load devices:', error);
+      return [];
+    }
+    return data || [];
+  }
+
+  async function fetchLog() {
+    const { data, error } = await supabase
+      .from('device_commands')
+      .select('id, device_id, command_type, payload, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) {
+      console.error('Failed to load action log:', error);
+      return [];
+    }
+    return (data || []).map(row => ({
+      time: timeAgo(new Date(row.created_at).getTime()),
+      action: row.command_type === 'reset_progress' ? 'reset' : 'rename',
+      detail: row.command_type === 'reset_progress'
+        ? `${row.device_id} reset`
+        : `${row.device_id}: "${row.payload && row.payload.old}" \u2192 "${row.payload && row.payload.new}"`,
+    }));
+  }
+
+  function renderDevices() {
+    document.getElementById('deviceGrid').innerHTML = devices.map(d => `
+      <div class="device-card">
+        <div>
+          <div class="id-tag">${d.device_id}</div>
+          <div class="field-row">
+            <div class="field">
+              <label for="name-${d.device_id}">Display name</label>
+              <input id="name-${d.device_id}" type="text" value="${d.display_name}"
+                     onchange="renameDevice('${d.device_id}', this.value)">
+            </div>
+            <div class="field">
+              <label for="section-${d.device_id}">Section</label>
+              <input id="section-${d.device_id}" type="text" value="${d.section || ''}"
+                     onchange="updateSection('${d.device_id}', this.value)">
+            </div>
+          </div>
+          <div class="status-row">${d.device_state ? 'last update ' + timeAgo(new Date(d.device_state.updated_at).getTime()) : 'no data yet'}</div>
+          <div class="save-hint" id="hint-${d.device_id}">Saved</div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-small" onclick="confirmResetOne('${d.device_id}', '${d.display_name}')">Reset Progress</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderLog() {
+    document.getElementById('actionLog').innerHTML = actionLog.map(l => `
+      <div class="log-row">
+        <span class="t">${l.time}</span>
+        <span class="action-tag action-${l.action}">${l.action}</span>
+        <span>${l.detail}</span>
+      </div>
+    `).join('');
+  }
+
+  async function renderAll() {
+    devices = await fetchDevices();
+    actionLog = await fetchLog();
+    renderDevices();
+    renderLog();
+  }
+
+  async function renameDevice(id, newName) {
+    const d = devices.find(x => x.device_id === id);
+    const oldName = d.display_name;
+    const { error } = await supabase.from('devices').update({ display_name: newName }).eq('device_id', id);
+    if (error) { console.error('Rename failed:', error); return; }
+    d.display_name = newName;
+    await supabase.from('device_commands').insert({
+      device_id: id, command_type: 'rename', status: 'done',
+      payload: { old: oldName, new: newName }, executed_at: new Date().toISOString(),
+    });
+    actionLog = await fetchLog();
+    renderLog();
+    flashSaved(id);
+  }
+
+  async function updateSection(id, newSection) {
+    const d = devices.find(x => x.device_id === id);
+    const { error } = await supabase.from('devices').update({ section: newSection }).eq('device_id', id);
+    if (error) { console.error('Section update failed:', error); return; }
+    d.section = newSection;
+    flashSaved(id);
+  }
+
+  function flashSaved(id) {
+    const hint = document.getElementById('hint-' + id);
+    hint.classList.add('show');
+    setTimeout(() => hint.classList.remove('show'), 1500);
+  }
+
+  // ---------------- reset flow (with confirmation modal) ----------------
+  let pendingReset = null; // { type: 'one'|'all', id, name }
+
+  function confirmResetOne(id, name) {
+    pendingReset = { type: 'one', id, name };
+    document.getElementById('modalTitle').textContent = `Reset ${name}?`;
+    document.getElementById('modalBody').textContent =
+      `This queues a reset command for ${id} - the device clears its own live XP/level/mission progress next time it checks in. Past trial data is preserved, not deleted.`;
+    openModal();
+  }
+
+  function confirmResetAll() {
+    pendingReset = { type: 'all' };
+    document.getElementById('modalTitle').textContent = 'Reset all devices?';
+    document.getElementById('modalBody').textContent =
+      'This queues a reset command for every device. Each clears its own progress next time it checks in. Past data is preserved, not deleted.';
+    openModal();
+  }
+
+  function openModal() { document.getElementById('modalBackdrop').classList.add('show'); }
+  function closeModal() { document.getElementById('modalBackdrop').classList.remove('show'); pendingReset = null; }
+
+  document.getElementById('modalConfirmBtn').addEventListener('click', async () => {
+    if (!pendingReset) return;
+    if (pendingReset.type === 'one') {
+      await supabase.from('device_commands').insert({
+        device_id: pendingReset.id, command_type: 'reset_progress', status: 'pending',
+      });
+    } else {
+      await supabase.from('device_commands').insert(
+        devices.map(d => ({ device_id: d.device_id, command_type: 'reset_progress', status: 'pending' }))
+      );
+    }
+    actionLog = await fetchLog();
+    renderLog();
+    closeModal();
+  });
+
+  document.getElementById('modalBackdrop').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+</script>
+</body>
+</html>
