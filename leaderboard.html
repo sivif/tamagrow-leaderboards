@@ -209,7 +209,8 @@
 
   .readings {
     display: flex;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     margin-top: 8px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
@@ -299,9 +300,8 @@
   // Security policies restrict what it can do (read-only here).
   // ---------------------------------------------------------------------
   const SUPABASE_URL = 'https://pablddtdqtqnchkoulrj.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYmxkZHRkcXRxbmNoa291bHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTg4NDcsImV4cCI6MjEwNTY3NDg0N30.jySQlW5IGxp-MWhYNxQ0NLxwlNSQk5CM-gJjVcQhV7U';
-  
-  // Renamed client instance variable to avoid collision with global window.supabase SDK
+  const SUPABASE_ANON_KEY = 'sb_publishable_e1tfeb_t_cbfIc6nSCatMw_guJV0CAZ';
+  // Named supabaseClient: a bare `const supabase` collides with the CDN's global.
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // Maps the ESP32 firmware's int enums to the strings this page expects.
@@ -373,6 +373,7 @@
               <span>MOIST <b>${d.moisture}%</b></span>
               <span>LIGHT <b>${d.light}%</b></span>
               <span>TEMP <b>${d.temp}&deg;C</b></span>
+              <span>HEALTH <b>${d.health ?? '&mdash;'}</b></span>
               <span>&middot; ${timeAgo(d.last_updated)}</span>
             </div>
           </div>
@@ -393,7 +394,7 @@
       .from('devices')
       .select(`
         device_id, display_name, section,
-        device_state ( moisture, light, temp, mood, plant_state, level, xp, updated_at )
+        device_state ( moisture, light, temp, mood, plant_state, level, xp, health, updated_at )
       `);
 
     if (error) {
@@ -410,6 +411,7 @@
         moisture: d.device_state.moisture,
         light: d.device_state.light,
         temp: d.device_state.temp,
+        health: d.device_state.health,   // null until the docker is flashed with the health-index firmware
         mood: MOOD_NAMES[d.device_state.mood] ?? 'neutral',
         level: d.device_state.level,
         xp: d.device_state.xp,
