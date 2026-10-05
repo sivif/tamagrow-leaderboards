@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TamaGrow Leaderboards - Navigation Hub</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        pixel: ['"Press Start 2P"', 'cursive'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            900: '#14532d',
+                        },
+                        tamagold: '#fbbf24',
+                        tamaglow: '#10b981',
+                        darkbg: '#0b0f19',
+                        cardbg: '#131b2e',
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-subtle': 'bounceSubtle 2s infinite',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-8px)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 1, filter: 'drop-shadow(0 0 12px rgba(16, 185, 129, 0.6))' },
+                            '50%': { opacity: 0.7, filter: 'drop-shadow(0 0 4px rgba(16, 185, 129, 0.2))' },
+                        },
+                        bounceSubtle: {
+                            '0%, 100%': { transform: 'translateY(-2%)' },
+                            '50%': { transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Background Pixel Grid */
+        .pixel-grid {
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* Glassmorphism Card Style */
+        .glass-card {
+            background: rgba(19, 27, 46, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.25);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-black pixel-grid relative overflow-x-hidden">
+
+    <!-- Ambient Background Glows -->
+    <div class="fixed top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full bg-emerald-600/15 blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full bg-cyan-600/15 blur-[120px] pointer-events-none"></div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="container mx-auto px-4 py-8 max-w-5xl z-10 flex-grow flex flex-col justify-center">
+
+        <!-- HEADER -->
+        <header class="text-center mb-10 pt-4">
+            <!-- Brand Badge -->
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono tracking-wider mb-4 animate-float">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>GITHUB PAGES HUB</span>
+            </div>
+
+            <!-- Main Title with Retro Accent -->
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-3">
+                Tama<span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">Grow</span> Leaderboards
+            </h1>
+            <p class="text-slate-400 text-base md:text-lg max-w-xl mx-auto font-light">
+                Central navigation portal for players, competitors, and game administrators. Choose a destination below to proceed.
+            </p>
+        </header>
+
+        <!-- DESTINATION CARDS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+
+            <!-- CARD 1: LEADERBOARD -->
+            <div class="glass-card rounded-2xl p-6 md:p-8 transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between relative group overflow-hidden">
+                <!-- Hover Accent Glow -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div>
+                    <!-- Icon & Tag -->
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300">
+                            <i class="fa-solid font-bold fa-trophy"></i>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-widest">
+                            Public Access
+                        </span>
+                    </div>
+
+                    <!-- Content -->
+                    <h2 class="text-2xl font-bold text-white mb-2 group-hover:text-emerald-300 transition-colors">
+                        Player Leaderboard
+                    </h2>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        View active player rankings, top tamagotchi scores, growth metrics, and high score history updated in real-time.
+                    </p>
+                </div>
+
+                <!-- Action Button & Link Info -->
+                <div class="mt-auto pt-4 border-t border-slate-800/80">
+                    <a href="https://sivif.github.io/tamagrow-leaderboards/leaderboard" 
+                       class="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-emerald-950/50 transition-all duration-200">
+                        <span>Launch Leaderboard</span>
+                        <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    
+                    <div class="flex items-center justify-between mt-3 text-xs text-slate-500 font-mono">
+                        <span class="truncate">/leaderboard</span>
+                        <button onclick="copyToClipboard('https://sivif.github.io/tamagrow-leaderboards/leaderboard', 'Leaderboard URL copied!')" 
+                                class="hover:text-emerald-400 transition-colors p-1" title="Copy Direct URL">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 2: ADMIN DASHBOARD -->
+            <div class="glass-card rounded-2xl p-6 md:p-8 transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between relative group overflow-hidden">
+                <!-- Hover Accent Glow -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-violet-500 opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div>
+                    <!-- Icon & Tag -->
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 group-hover:bg-amber-500/20 transition-all duration-300">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
+                            Restricted
+                        </span>
+                    </div>
+
+                    <!-- Content -->
+                    <h2 class="text-2xl font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">
+                        Admin Control Panel
+                    </h2>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        Manage player submissions, reset leaderboard cycles, edit scores, configure event parameters, and view system logs.
+                    </p>
+                </div>
+
+                <!-- Action Button & Link Info -->
+                <div class="mt-auto pt-4 border-t border-slate-800/80">
+                    <a href="https://sivif.github.io/tamagrow-leaderboards/admin" 
+                       class="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 hover:border-amber-400/60 font-bold text-sm tracking-wide transition-all duration-200">
+                        <span>Access Admin Dashboard</span>
+                        <i class="fa-solid fa-lock text-xs group-hover:rotate-12 transition-transform"></i>
+                    </a>
+                    
+                    <div class="flex items-center justify-between mt-3 text-xs text-slate-500 font-mono">
+                        <span class="truncate">/admin</span>
+                        <button onclick="copyToClipboard('https://sivif.github.io/tamagrow-leaderboards/admin', 'Admin URL copied!')" 
+                                class="hover:text-amber-400 transition-colors p-1" title="Copy Direct URL">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- VIRTUAL PET STATUS & QUICK UTILITIES -->
+        <div class="glass-card rounded-xl p-5 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-800">
+            <!-- Mini Pet Widget -->
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <div class="relative">
+                    <div id="pet-avatar" class="w-12 h-12 rounded-lg bg-emerald-950 border border-emerald-500/50 flex items-center justify-center text-emerald-400 text-xl font-pixel cursor-pointer select-none hover:scale-105 transition-transform" onclick="petTamagotchi()">
+                        (•◡•)
+                    </div>
+                    <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-sm text-slate-200">TamaBot Companion</span>
+                        <span id="pet-mood-badge" class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono">Happy</span>
+                    </div>
+                    <p id="pet-speech" class="text-xs text-slate-400">Click me to feed or pet! Leaderboard services operational.</p>
+                </div>
+            </div>
+
+            <!-- Quick Link Buttons for Relative/Local Routing -->
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end text-xs">
+                <span class="text-slate-500 font-mono hidden md:inline">Quick Jump:</span>
+                <a href="./leaderboard" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-mono border border-slate-700/50 transition-colors">
+                    ./leaderboard
+                </a>
+                <a href="./admin" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-mono border border-slate-700/50 transition-colors">
+                    ./admin
+                </a>
+            </div>
+        </div>
+
+        <!-- QUICK URL COPY UTILITY -->
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 text-xs text-slate-400 flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-brands fa-github text-slate-400 text-base"></i>
+                <span>Hosted on <strong>sivif.github.io/tamagrow-leaderboards</strong></span>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <input id="baseUrlInput" type="text" readonly value="https://sivif.github.io/tamagrow-leaderboards/" 
+                       class="bg-slate-950 border border-slate-800 text-emerald-400 font-mono px-3 py-1.5 rounded-lg w-full md:w-72 focus:outline-none text-xs">
+                <button onclick="copyToClipboard(document.getElementById('baseUrlInput').value, 'Base repository URL copied!')" 
+                        class="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors font-medium whitespace-nowrap">
+                    <i class="fa-regular fa-copy mr-1"></i> Copy Base URL
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="container mx-auto px-4 py-6 text-center text-xs text-slate-600 border-t border-slate-900 z-10">
+        <p class="flex items-center justify-center gap-1">
+            <span>Powered by</span>
+            <a href="https://pages.github.com/" target="_blank" rel="noopener" class="text-slate-400 hover:text-emerald-400 transition-colors">GitHub Pages</a>
+            <span>•</span>
+            <span>TamaGrow Leaderboard System</span>
+        </p>
+    </footer>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Copy to clipboard fallback function for iframe/browser compatibility
+        function copyToClipboard(text, successMessage) {
+            try {
+                // Temporary hidden textarea for document.execCommand('copy')
+                const el = document.createElement('textarea');
+                el.value = text;
+                el.setAttribute('readonly', '');
+                el.style.position = 'absolute';
+                el.style.left = '-9999px';
+                document.body.appendChild(el);
+                el.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(el);
+
+                if (successful) {
+                    showToast(successMessage || 'Copied to clipboard!');
+                } else {
+                    showToast('Failed to copy. Please copy manually.');
+                }
+            } catch (err) {
+                showToast('Copy failed: ' + err.message);
+            }
+        }
+
+        // Custom Toast Notification System (replaces standard alert())
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-900 text-emerald-400 border border-emerald-500/40 px-4 py-3 rounded-xl shadow-xl text-xs font-mono flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            // Auto Remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Interactive Pet Companion Logic
+        const petAvatars = ['(•◡•)', '(>‿<)', '(^‿^)', '(づ｡◕‿‿◕｡)づ', '(p_q)'];
+        const petMessages = [
+            "Yum! Ready to check high scores!",
+            "TamaBot loves global rankings!",
+            "Admin mode active & healthy!",
+            "Keep growing your score pet!",
+            "TamaGrow Leaderboards updated!"
+        ];
+        let petClickCount = 0;
+
+        function petTamagotchi() {
+            petClickCount++;
+            const avatarEl = document.getElementById('pet-avatar');
+            const speechEl = document.getElementById('pet-speech');
+            const badgeEl = document.getElementById('pet-mood-badge');
+
+            // Pick avatar based on count
+            const avatarIndex = petClickCount % petAvatars.length;
+            avatarEl.innerText = petAvatars[avatarIndex];
+            speechEl.innerText = petMessages[avatarIndex];
+
+            // Change mood
+            if (petClickCount > 5) {
+                badgeEl.innerText = 'Super Happy!';
+                badgeEl.className = 'text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono';
+            } else {
+                badgeEl.innerText = 'Ecstatic';
+                badgeEl.className = 'text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono';
+            }
+
+            // Quick bounce animation
+            avatarEl.classList.add('scale-125');
+            setTimeout(() => avatarEl.classList.remove('scale-125'), 200);
+
+            showToast("You petted TamaBot! Mood boosted.");
+        }
+    </script>
+</body>
+</html>
