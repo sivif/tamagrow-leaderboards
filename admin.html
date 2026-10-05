@@ -106,6 +106,8 @@
   .btn:active { transform: scale(0.98); }
   .btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
   .btn-primary { background: var(--amber); color: #1b1305; width: 100%; }
+  .btn-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-dim); }
+  .btn-amber:hover { background: var(--amber); color: #1b1305; }
   .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
   .btn-danger { background: var(--coral-dim); color: var(--coral); border: 1px solid var(--coral-dim); }
   .btn-danger:hover { background: var(--coral); color: #2a0f08; }
@@ -224,7 +226,9 @@
     font-size: 11px;
     color: var(--text-faint);
     margin-top: 4px;
+    line-height: 1.6;
   }
+  .status-row b { color: var(--text-dim); font-weight: 500; }
 
   .reset-all-bar {
     background: var(--surface);
@@ -252,6 +256,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
+    flex-wrap: wrap;
   }
   .log-row .t { color: var(--text-faint); min-width: 70px; }
   .log-row .action-tag {
@@ -261,6 +266,8 @@
   }
   .log-row .action-rename { color: var(--amber); background: var(--amber-dim); }
   .log-row .action-reset { color: var(--coral); background: var(--coral-dim); }
+  .log-row .action-override { color: var(--green); background: var(--green-dim); }
+  .log-row .pending-tag { color: var(--text-faint); font-style: italic; }
 
   /* modal */
   .modal-backdrop {
@@ -280,14 +287,19 @@
     max-width: 380px;
     width: 100%;
   }
+  .modal.override { border-color: var(--amber-dim); max-width: 420px; }
   .modal h2 {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 18px;
     margin: 0 0 10px;
     color: var(--coral);
   }
+  .modal.override h2 { color: var(--amber); }
   .modal p { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0 0 20px; }
   .modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal .field-row { margin-bottom: 12px; }
+  .modal .field input, .modal .field select { background: var(--surface); }
+  .modal-error { color: var(--coral); font-size: 12px; min-height: 16px; margin-bottom: 10px; }
 
   footer {
     margin-top: 40px;
@@ -349,7 +361,7 @@
 </div>
 </div>
 
-<!-- ======================= MODAL ======================= -->
+<!-- ======================= RESET MODAL ======================= -->
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <h2 id="modalTitle">Reset device?</h2>
@@ -361,8 +373,57 @@
   </div>
 </div>
 
+<!-- ======================= OVERRIDE MODAL ======================= -->
+<div class="modal-backdrop" id="overrideBackdrop">
+  <div class="modal override">
+    <h2 id="overrideTitle">Override device</h2>
+    <p>
+      Use this when the docker's data doesn't match the real plant. Leave a field blank to keep the docker's current value.
+      Applies on the docker's next check-in (about 15s) and is logged under Recent Actions.
+    </p>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="ovLevel">Level (1&ndash;99)</label>
+        <input id="ovLevel" type="number" min="1" max="99" step="1" placeholder="no change">
+      </div>
+      <div class="field">
+        <label for="ovXp">XP (0&ndash;99)</label>
+        <input id="ovXp" type="number" min="0" max="99" step="1" placeholder="no change">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="ovStage">Plant stage</label>
+        <select id="ovStage">
+          <option value="">&mdash; no change &mdash;</option>
+          <option value="0">Seedling</option>
+          <option value="1">Sprout</option>
+          <option value="2">Sprout 2</option>
+          <option value="3">Plant</option>
+          <option value="4">Flowering</option>
+          <option value="5">Beans</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="ovReason">Reason (optional, saved to the log)</label>
+        <input id="ovReason" type="text" maxlength="120" placeholder="e.g. plant is visibly flowering">
+      </div>
+    </div>
+
+    <div class="modal-error" id="overrideError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-small" onclick="closeOverrideModal()">Cancel</button>
+      <button class="btn btn-amber btn-small" id="overrideConfirmBtn">Apply Override</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  // ---------------------------------------------------------------------
   // ---------------------------------------------------------------------
   // SUPABASE CONFIG - fill in your project's URL and anon key.
   // Admin write access currently relies only on the client-side PIN below
@@ -370,12 +431,13 @@
   // project decision - not hardened with real auth or RLS session gating).
   // ---------------------------------------------------------------------
   const SUPABASE_URL = 'https://pablddtdqtqnchkoulrj.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhYmxkZHRkcXRxbmNoa291bHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTg4NDcsImV4cCI6MjEwNTY3NDg0N30.jySQlW5IGxp-MWhYNxQ0NLxwlNSQk5CM-gJjVcQhV7U';
-  
-  // Renamed client instance variable to avoid collision with global window.supabase SDK
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const SUPABASE_ANON_KEY = 'sb_publishable_e1tfeb_t_cbfIc6nSCatMw_guJV0CAZ';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const DEMO_PIN = '1234';
+
+  // PlantState enum order from the firmware
+  const STAGE_NAMES = ['Seedling', 'Sprout', 'Sprout 2', 'Plant', 'Flowering', 'Beans'];
 
   let devices = [];
   let actionLog = [];
@@ -410,11 +472,11 @@
   }
 
   async function fetchDevices() {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('devices')
       .select(`
         device_id, display_name, section,
-        device_state ( updated_at )
+        device_state ( updated_at, level, xp, plant_state )
       `);
     if (error) {
       console.error('Failed to load devices:', error);
@@ -423,27 +485,56 @@
     return data || [];
   }
 
+  function describeOverride(p) {
+    p = p || {};
+    const parts = [];
+    if (p.level !== undefined) parts.push('level ' + p.level);
+    if (p.xp !== undefined) parts.push('xp ' + p.xp);
+    if (p.plant_state !== undefined) parts.push('stage ' + (STAGE_NAMES[p.plant_state] ?? p.plant_state));
+    let out = parts.join(', ') || 'no fields';
+    if (p.reason) out += ` \u2014 "${p.reason}"`;
+    return out;
+  }
+
   async function fetchLog() {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('device_commands')
-      .select('id, device_id, command_type, payload, created_at')
+      .select('id, device_id, command_type, payload, status, created_at')
       .order('created_at', { ascending: false })
       .limit(20);
     if (error) {
       console.error('Failed to load action log:', error);
       return [];
     }
-    return (data || []).map(row => ({
-      time: timeAgo(new Date(row.created_at).getTime()),
-      action: row.command_type === 'reset_progress' ? 'reset' : 'rename',
-      detail: row.command_type === 'reset_progress'
-        ? `${row.device_id} reset`
-        : `${row.device_id}: "${row.payload && row.payload.old}" \u2192 "${row.payload && row.payload.new}"`,
-    }));
+    return (data || []).map(row => {
+      let action, detail;
+      if (row.command_type === 'reset_progress') {
+        action = 'reset';
+        detail = `${row.device_id} reset`;
+      } else if (row.command_type === 'override_state') {
+        action = 'override';
+        detail = `${row.device_id}: ${describeOverride(row.payload)}`;
+      } else {
+        action = 'rename';
+        detail = `${row.device_id}: "${row.payload && row.payload.old}" \u2192 "${row.payload && row.payload.new}"`;
+      }
+      return {
+        time: timeAgo(new Date(row.created_at).getTime()),
+        action,
+        detail,
+        pending: row.status === 'pending',
+      };
+    });
   }
 
   function renderDevices() {
-    document.getElementById('deviceGrid').innerHTML = devices.map(d => `
+    document.getElementById('deviceGrid').innerHTML = devices.map(d => {
+      const st = d.device_state;
+      const statusLine = st
+        ? `last update ${timeAgo(new Date(st.updated_at).getTime())}<br>` +
+          `LV <b>${st.level}</b> &middot; XP <b>${st.xp}</b> &middot; stage <b>${STAGE_NAMES[st.plant_state] ?? '?'}</b>`
+        : 'no data yet';
+      return `
       <div class="device-card">
         <div>
           <div class="id-tag">${d.device_id}</div>
@@ -459,14 +550,16 @@
                      onchange="updateSection('${d.device_id}', this.value)">
             </div>
           </div>
-          <div class="status-row">${d.device_state ? 'last update ' + timeAgo(new Date(d.device_state.updated_at).getTime()) : 'no data yet'}</div>
+          <div class="status-row">${statusLine}</div>
           <div class="save-hint" id="hint-${d.device_id}">Saved</div>
         </div>
         <div class="card-actions">
+          <button class="btn btn-amber btn-small" onclick="openOverride('${d.device_id}')">Override State</button>
           <button class="btn btn-ghost btn-small" onclick="confirmResetOne('${d.device_id}', '${d.display_name}')">Reset Progress</button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderLog() {
@@ -475,6 +568,7 @@
         <span class="t">${l.time}</span>
         <span class="action-tag action-${l.action}">${l.action}</span>
         <span>${l.detail}</span>
+        ${l.pending ? '<span class="pending-tag">pending</span>' : ''}
       </div>
     `).join('');
   }
@@ -489,10 +583,10 @@
   async function renameDevice(id, newName) {
     const d = devices.find(x => x.device_id === id);
     const oldName = d.display_name;
-    const { error } = await supabaseClient.from('devices').update({ display_name: newName }).eq('device_id', id);
+    const { error } = await supabase.from('devices').update({ display_name: newName }).eq('device_id', id);
     if (error) { console.error('Rename failed:', error); return; }
     d.display_name = newName;
-    await supabaseClient.from('device_commands').insert({
+    await supabase.from('device_commands').insert({
       device_id: id, command_type: 'rename', status: 'done',
       payload: { old: oldName, new: newName }, executed_at: new Date().toISOString(),
     });
@@ -503,7 +597,7 @@
 
   async function updateSection(id, newSection) {
     const d = devices.find(x => x.device_id === id);
-    const { error } = await supabaseClient.from('devices').update({ section: newSection }).eq('device_id', id);
+    const { error } = await supabase.from('devices').update({ section: newSection }).eq('device_id', id);
     if (error) { console.error('Section update failed:', error); return; }
     d.section = newSection;
     flashSaved(id);
@@ -514,6 +608,86 @@
     hint.classList.add('show');
     setTimeout(() => hint.classList.remove('show'), 1500);
   }
+
+  // ---------------- override flow ----------------
+  let pendingOverrideId = null;
+
+  function openOverride(id) {
+    const d = devices.find(x => x.device_id === id);
+    pendingOverrideId = id;
+    document.getElementById('overrideTitle').textContent = `Override ${d.display_name}`;
+    document.getElementById('ovLevel').value = '';
+    document.getElementById('ovXp').value = '';
+    document.getElementById('ovStage').value = '';
+    document.getElementById('ovReason').value = '';
+    document.getElementById('overrideError').textContent = '';
+
+    // Show the current values as placeholders so it's clear what "no change" means.
+    if (d.device_state) {
+      document.getElementById('ovLevel').placeholder = 'now ' + d.device_state.level;
+      document.getElementById('ovXp').placeholder = 'now ' + d.device_state.xp;
+    } else {
+      document.getElementById('ovLevel').placeholder = 'no change';
+      document.getElementById('ovXp').placeholder = 'no change';
+    }
+    document.getElementById('overrideBackdrop').classList.add('show');
+  }
+
+  function closeOverrideModal() {
+    document.getElementById('overrideBackdrop').classList.remove('show');
+    pendingOverrideId = null;
+  }
+
+  document.getElementById('overrideConfirmBtn').addEventListener('click', async () => {
+    if (!pendingOverrideId) return;
+    const errEl = document.getElementById('overrideError');
+    errEl.textContent = '';
+
+    const lvlRaw = document.getElementById('ovLevel').value.trim();
+    const xpRaw = document.getElementById('ovXp').value.trim();
+    const stageRaw = document.getElementById('ovStage').value;
+    const reason = document.getElementById('ovReason').value.trim();
+
+    const payload = {};
+
+    if (lvlRaw !== '') {
+      const v = Number(lvlRaw);
+      if (!Number.isInteger(v) || v < 1 || v > 99) { errEl.textContent = 'Level must be a whole number from 1 to 99.'; return; }
+      payload.level = v;
+    }
+    if (xpRaw !== '') {
+      const v = Number(xpRaw);
+      if (!Number.isInteger(v) || v < 0 || v > 99) { errEl.textContent = 'XP must be a whole number from 0 to 99.'; return; }
+      payload.xp = v;
+    }
+    if (stageRaw !== '') payload.plant_state = Number(stageRaw);
+    if (reason) payload.reason = reason;
+
+    if (payload.level === undefined && payload.xp === undefined && payload.plant_state === undefined) {
+      errEl.textContent = 'Change at least one field.';
+      return;
+    }
+
+    const { error } = await supabase.from('device_commands').insert({
+      device_id: pendingOverrideId,
+      command_type: 'override_state',
+      status: 'pending',
+      payload,
+    });
+    if (error) {
+      console.error('Override failed:', error);
+      errEl.textContent = 'Could not queue the override. Check the console.';
+      return;
+    }
+
+    actionLog = await fetchLog();
+    renderLog();
+    closeOverrideModal();
+  });
+
+  document.getElementById('overrideBackdrop').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeOverrideModal();
+  });
 
   // ---------------- reset flow (with confirmation modal) ----------------
   let pendingReset = null; // { type: 'one'|'all', id, name }
@@ -540,11 +714,11 @@
   document.getElementById('modalConfirmBtn').addEventListener('click', async () => {
     if (!pendingReset) return;
     if (pendingReset.type === 'one') {
-      await supabaseClient.from('device_commands').insert({
+      await supabase.from('device_commands').insert({
         device_id: pendingReset.id, command_type: 'reset_progress', status: 'pending',
       });
     } else {
-      await supabaseClient.from('device_commands').insert(
+      await supabase.from('device_commands').insert(
         devices.map(d => ({ device_id: d.device_id, command_type: 'reset_progress', status: 'pending' }))
       );
     }
