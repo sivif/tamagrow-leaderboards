@@ -432,7 +432,7 @@
   // ---------------------------------------------------------------------
   const SUPABASE_URL = 'https://pablddtdqtqnchkoulrj.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_e1tfeb_t_cbfIc6nSCatMw_guJV0CAZ';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const DEMO_PIN = '1234';
 
@@ -472,7 +472,7 @@
   }
 
   async function fetchDevices() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('devices')
       .select(`
         device_id, display_name, section,
@@ -497,7 +497,7 @@
   }
 
   async function fetchLog() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('device_commands')
       .select('id, device_id, command_type, payload, status, created_at')
       .order('created_at', { ascending: false })
@@ -583,10 +583,10 @@
   async function renameDevice(id, newName) {
     const d = devices.find(x => x.device_id === id);
     const oldName = d.display_name;
-    const { error } = await supabase.from('devices').update({ display_name: newName }).eq('device_id', id);
+    const { error } = await supabaseClient.from('devices').update({ display_name: newName }).eq('device_id', id);
     if (error) { console.error('Rename failed:', error); return; }
     d.display_name = newName;
-    await supabase.from('device_commands').insert({
+    await supabaseClient.from('device_commands').insert({
       device_id: id, command_type: 'rename', status: 'done',
       payload: { old: oldName, new: newName }, executed_at: new Date().toISOString(),
     });
@@ -597,7 +597,7 @@
 
   async function updateSection(id, newSection) {
     const d = devices.find(x => x.device_id === id);
-    const { error } = await supabase.from('devices').update({ section: newSection }).eq('device_id', id);
+    const { error } = await supabaseClient.from('devices').update({ section: newSection }).eq('device_id', id);
     if (error) { console.error('Section update failed:', error); return; }
     d.section = newSection;
     flashSaved(id);
@@ -668,7 +668,7 @@
       return;
     }
 
-    const { error } = await supabase.from('device_commands').insert({
+    const { error } = await supabaseClient.from('device_commands').insert({
       device_id: pendingOverrideId,
       command_type: 'override_state',
       status: 'pending',
@@ -714,11 +714,11 @@
   document.getElementById('modalConfirmBtn').addEventListener('click', async () => {
     if (!pendingReset) return;
     if (pendingReset.type === 'one') {
-      await supabase.from('device_commands').insert({
+      await supabaseClient.from('device_commands').insert({
         device_id: pendingReset.id, command_type: 'reset_progress', status: 'pending',
       });
     } else {
-      await supabase.from('device_commands').insert(
+      await supabaseClient.from('device_commands').insert(
         devices.map(d => ({ device_id: d.device_id, command_type: 'reset_progress', status: 'pending' }))
       );
     }
