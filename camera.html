@@ -33,7 +33,7 @@
   form { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; align-items:end; }
   @media (max-width:760px) { form { grid-template-columns:1fr; } }
   label { font-size:13px; font-weight:700; display:block; margin-bottom:4px; }
-  input { width:100%; font:inherit; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  input, select { width:100%; font:inherit; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; }
   .hint { font-size:12px; color:var(--mute); margin-top:3px; }
   #msg { min-height:24px; margin:12px 0 0; font-size:14px; font-weight:700; }
   .err { color:var(--red); font-size:13px; margin-top:6px; }
@@ -69,7 +69,7 @@
     <form id="cfg">
       <div><label for="fInt">Check every (minutes)</label><input id="fInt" type="number" min="1" max="1440" value="10"></div>
       <div><label for="fDev">Plants in view, left to right</label><input id="fDev" value="DEV_01"><div class="hint">Up to 3 device IDs, separated by commas.</div></div>
-      <div><label for="fModel">AI model</label><input id="fModel" placeholder="First model in the list"><div class="hint">Leave blank to use the first model.</div></div>
+      <div><label for="fModel">AI model</label><select id="fModel"><option value="">Auto: first model in the list</option></select><div class="hint">The list appears after the camera's first check.</div></div>
       <div><button type="submit" id="bSave">Save to camera</button></div>
     </form>
   </section>
@@ -110,6 +110,20 @@ async function loadImage() {
   } catch { return 0; }
 }
 
+let modelsKey = "";
+function fillModels(n) {
+  const sel = $("fModel");
+  if (document.activeElement === sel) return;
+  const list = (n.models || "").split(",").filter(Boolean).sort();
+  const key = list.length + "|" + (n.override || "");
+  if (key === modelsKey) return;
+  modelsKey = key;
+  sel.innerHTML = '<option value="">Auto: first model in the list</option>' +
+    list.map(m => `<option value="${m}">${m}</option>`).join("");
+  if (n.override && !list.includes(n.override)) sel.add(new Option(n.override, n.override));
+  sel.value = n.override || "";
+}
+
 function scoreClass(s) { return s < 0 ? "none" : s >= 70 ? "ok" : s >= 40 ? "warn" : "bad"; }
 
 async function loadData() {
@@ -129,6 +143,7 @@ async function loadData() {
     if (n) {
       $("nodeMeta").textContent = `Model: ${n.model || "not chosen yet"}. Camera last reported ${ago(n.updated_at)}.`;
       $("nodeErr").textContent = n.error ? "Camera problem: " + n.error : "";
+      fillModels(n);
       if (document.activeElement.closest("#cfg") === null) {
         $("fInt").value = n.interval_min || 10; $("fDev").value = n.devices || "DEV_01";
       }
