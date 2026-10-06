@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TamaGrow Camera</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#e9efe8; --panel:#fbfdfa; --ink:#17261d; --mute:#5b6f61; --line:#c9d5c8; --pine:#2e7d4f; --amber:#a86b12; --red:#a93226; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 Nunito, system-ui, sans-serif; }
+  main { max-width:1040px; margin:0 auto; padding:20px 16px 48px; }
+  h1 { font-size:26px; font-weight:800; margin:0 0 2px; }
+  h2 { font-size:17px; font-weight:800; margin:0 0 10px; }
+  .sub { color:var(--mute); margin:0 0 18px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:3fr 2fr; gap:16px; }
+  @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .photo { background:#0f1a13; border-radius:10px; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; overflow:hidden; color:#9fb3a5; text-align:center; }
+  .photo img { width:100%; height:100%; object-fit:contain; display:block; }
+  .meta { font-size:13px; color:var(--mute); margin:8px 0 12px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  button { font:inherit; font-weight:700; border:0; border-radius:9px; padding:10px 16px; cursor:pointer; background:var(--pine); color:#fff; }
+  button.alt { background:#dfe9dd; color:var(--ink); }
+  button:disabled { opacity:.5; cursor:wait; }
+  button:focus-visible, input:focus-visible { outline:3px solid #7fc79b; outline-offset:2px; }
+  .plant { border-top:1px solid var(--line); padding:12px 0; }
+  .plant:first-of-type { border-top:0; padding-top:0; }
+  .plant b { font-size:15px; }
+  .score { font-size:30px; font-weight:800; line-height:1; }
+  .ok { color:var(--pine); } .warn { color:var(--amber); } .bad { color:var(--red); } .none { color:var(--mute); }
+  .plant p { margin:4px 0 0; font-size:14px; color:var(--mute); }
+  form { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; align-items:end; }
+  @media (max-width:760px) { form { grid-template-columns:1fr; } }
+  label { font-size:13px; font-weight:700; display:block; margin-bottom:4px; }
+  input { width:100%; font:inherit; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .hint { font-size:12px; color:var(--mute); margin-top:3px; }
+  #msg { min-height:24px; margin:12px 0 0; font-size:14px; font-weight:700; }
+  .err { color:var(--red); font-size:13px; margin-top:6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Plant camera</h1>
+  <p class="sub">Take a photo, ask the AI to check your plants, and change how the camera works.</p>
+
+  <div class="grid">
+    <section>
+      <h2>Latest photo</h2>
+      <div class="photo"><img id="img" alt="Latest photo of the plants" hidden><span id="noimg">No photo yet. Press Take photo.</span></div>
+      <div class="meta" id="imgMeta"></div>
+      <div class="row">
+        <button id="bSnap">Take photo</button>
+        <button id="bAnalyze" class="alt">Check plants with AI</button>
+      </div>
+      <div id="msg" role="status" aria-live="polite"></div>
+    </section>
+
+    <section>
+      <h2>Plant health</h2>
+      <div id="plants"><p class="sub">Loading...</p></div>
+      <div class="meta" id="nodeMeta"></div>
+      <div class="err" id="nodeErr"></div>
+    </section>
+  </div>
+
+  <section style="margin-top:16px">
+    <h2>Camera settings</h2>
+    <form id="cfg">
+      <div><label for="fInt">Check every (minutes)</label><input id="fInt" type="number" min="1" max="1440" value="10"></div>
+      <div><label for="fDev">Plants in view, left to right</label><input id="fDev" value="DEV_01"><div class="hint">Up to 3 device IDs, separated by commas.</div></div>
+      <div><label for="fModel">AI model</label><input id="fModel" placeholder="First model in the list"><div class="hint">Leave blank to use the first model.</div></div>
+      <div><button type="submit" id="bSave">Save to camera</button></div>
+    </form>
+  </section>
+</main>
+
+<script>
+const SB = "https://pablddtdqtqnchkoulrj.supabase.co";
+const KEY = "PASTE_ANON_KEY";          // same anon key as the leaderboard page
+const TARGET = "DEV_01";                // must match CAM_CMD_TARGET in cameraAI.ino
+const IMG_URL = SB + "/storage/v1/object/public/camera/latest.jpg";
+const H = { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" };
+const $ = id => document.getElementById(id);
+let busy = false;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const say = (t, cls) => { $("msg").textContent = t; $("msg").className = cls || ""; };
+const ago = iso => {
+  if (!iso) return "never";
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso)) / 1000));
+  return s < 90 ? s + " s ago" : s < 5400 ? Math.round(s / 60) + " min ago" : Math.round(s / 3600) + " h ago";
+};
+
+async function get(path) {
+  const r = await fetch(SB + "/rest/v1/" + path, { headers: H, cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+async function loadImage() {
+  try {
+    const r = await fetch(IMG_URL + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw 0;
+    const lm = r.headers.get("last-modified");
+    const url = URL.createObjectURL(await r.blob());
+    $("img").src = url; $("img").hidden = false; $("noimg").hidden = true;
+    $("imgMeta").textContent = lm ? "Taken " + ago(new Date(lm).toISOString()) : "";
+    return lm ? new Date(lm).getTime() : 0;
+  } catch { return 0; }
+}
+
+function scoreClass(s) { return s < 0 ? "none" : s >= 70 ? "ok" : s >= 40 ? "warn" : "bad"; }
+
+async function loadData() {
+  try {
+    const [plants, node] = await Promise.all([
+      get("camera_health?select=*&order=device_id"),
+      get("camera_node?node_id=eq.CAM_01&select=*")
+    ]);
+    $("plants").innerHTML = plants.length ? plants.map(p => `
+      <div class="plant">
+        <b>${p.device_id}</b>
+        <div class="score ${scoreClass(p.score)}">${p.score < 0 ? "Not visible" : p.score + " / 100"}</div>
+        <p>${p.status || ""}${p.notes ? " - " + p.notes : ""}</p>
+        <p>Checked ${ago(p.updated_at)}</p>
+      </div>`).join("") : '<p class="sub">No results yet. Press Check plants with AI.</p>';
+    const n = node[0];
+    if (n) {
+      $("nodeMeta").textContent = `Model: ${n.model || "not chosen yet"}. Camera last reported ${ago(n.updated_at)}.`;
+      $("nodeErr").textContent = n.error ? "Camera problem: " + n.error : "";
+      if (document.activeElement.closest("#cfg") === null) {
+        $("fInt").value = n.interval_min || 10; $("fDev").value = n.devices || "DEV_01";
+      }
+    }
+    return { plants, node: n };
+  } catch (e) { $("plants").innerHTML = '<p class="err">Could not load data (' + e.message + ').</p>'; return {}; }
+}
+
+async function sendCommand(type, payload) {
+  const r = await fetch(SB + "/rest/v1/device_commands", {
+    method: "POST", headers: { ...H, Prefer: "return=representation" },
+    body: JSON.stringify({ device_id: TARGET, command_type: type, payload: payload || {}, status: "pending" })
+  });
+  if (!r.ok) throw new Error("could not send (HTTP " + r.status + ")");
+  return (await r.json())[0].id;
+}
+
+async function waitDone(id, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    await sleep(3000);
+    const rows = await get("device_commands?id=eq." + id + "&select=status");
+    if (rows[0] && rows[0].status === "done") return true;
+  }
+  return false;
+}
+
+async function run(btn, fn) {
+  if (busy) return;
+  busy = true; document.querySelectorAll("button").forEach(b => b.disabled = true);
+  try { await fn(); } catch (e) { say("Something went wrong: " + e.message, "bad"); }
+  busy = false; document.querySelectorAll("button").forEach(b => b.disabled = false);
+}
+
+$("bSnap").onclick = () => run($("bSnap"), async () => {
+  const before = await loadImage();
+  say("Sending request to the camera...");
+  const id = await sendCommand("cam_snapshot");
+  if (!await waitDone(id, 60000)) return say("The camera did not answer. Check that it has WiFi.", "bad");
+  say("Camera is taking the photo...");
+  for (let i = 0; i < 12; i++) {
+    await sleep(3000);
+    const t = await loadImage();
+    if (t > before) return say("New photo ready.", "ok");
+  }
+  say("Photo is taking longer than usual. Try Refresh in a moment.", "bad");
+});
+
+$("bAnalyze").onclick = () => run($("bAnalyze"), async () => {
+  const start = Date.now();
+  say("Sending request to the camera...");
+  const id = await sendCommand("cam_analyze");
+  if (!await waitDone(id, 60000)) return say("The camera did not answer. Check that it has WiFi.", "bad");
+  say("AI is checking the plants. This can take a minute...");
+  for (let i = 0; i < 30; i++) {
+    await sleep(4000);
+    const { plants } = await loadData();
+    if (plants && plants.some(p => new Date(p.updated_at) > start)) { await loadImage(); return say("Plant health updated.", "ok"); }
+  }
+  say("No new result yet. The camera retries on its own; check the problem note on the right.", "bad");
+});
+
+$("cfg").onsubmit = e => { e.preventDefault(); run($("bSave"), async () => {
+  const devices = $("fDev").value.split(",").map(s => s.trim()).filter(Boolean).slice(0, 3);
+  if (!devices.length) return say("Enter at least one plant ID.", "bad");
+  const id = await sendCommand("cam_config", {
+    interval_min: Math.max(1, parseInt($("fInt").value) || 10), devices, model: $("fModel").value.trim()
+  });
+  say(await waitDone(id, 60000) ? "Settings saved on the camera." : "The camera did not answer. Check that it has WiFi.",
+      "");
+  await loadData();
+}); };
+
+loadImage(); loadData(); setInterval(loadData, 30000);
+</script>
+</body>
+</html>

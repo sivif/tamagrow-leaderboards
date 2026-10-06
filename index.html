@@ -108,7 +108,7 @@
     <div class="fixed bottom-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full bg-cyan-600/15 blur-[120px] pointer-events-none"></div>
 
     <!-- MAIN CONTAINER -->
-    <div class="container mx-auto px-4 py-8 max-w-5xl z-10 flex-grow flex flex-col justify-center">
+    <div class="container mx-auto px-4 py-8 max-w-6xl z-10 flex-grow flex flex-col justify-center">
 
         <!-- HEADER -->
         <header class="text-center mb-10 pt-4">
@@ -128,7 +128,7 @@
         </header>
 
         <!-- DESTINATION CARDS GRID -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
 
             <!-- CARD 1: LEADERBOARD -->
             <div class="glass-card rounded-2xl p-6 md:p-8 transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between relative group overflow-hidden">
@@ -216,6 +216,49 @@
                 </div>
             </div>
 
+            <!-- CARD 3: CAMERA DASHBOARD -->
+            <div class="glass-card rounded-2xl p-6 md:p-8 transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between relative group overflow-hidden">
+                <!-- Hover Accent Glow -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500 opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div>
+                    <!-- Icon & Tag -->
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl group-hover:scale-110 group-hover:bg-cyan-500/20 transition-all duration-300">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase tracking-widest">
+                            Live Feed
+                        </span>
+                    </div>
+
+                    <!-- Content -->
+                    <h2 class="text-2xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">
+                        Camera Dashboard
+                    </h2>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        Monitor live camera streams, environmental stats, and real-time visual feeds for active Tamagotchi units.
+                    </p>
+                </div>
+
+                <!-- Action Button & Link Info -->
+                <div class="mt-auto pt-4 border-t border-slate-800/80">
+                    <a href="https://sivif.github.io/tamagrow-leaderboards/camera" 
+                       class="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-cyan-950/50 transition-all duration-200">
+                        <span>Launch Camera Feed</span>
+                        <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    
+                    <div class="flex items-center justify-between mt-3 text-xs text-slate-500 font-mono">
+                        <span class="truncate">/camera</span>
+                        <button onclick="copyToClipboard('https://sivif.github.io/tamagrow-leaderboards/camera', 'Camera URL copied!')" 
+                                class="hover:text-cyan-400 transition-colors p-1" title="Copy Direct URL">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- VIRTUAL PET STATUS & QUICK UTILITIES -->
@@ -241,13 +284,16 @@
             </div>
 
             <!-- Quick Link Buttons for Relative/Local Routing -->
-            <div class="flex items-center gap-2 w-full md:w-auto justify-end text-xs">
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end text-xs flex-wrap">
                 <span class="text-slate-500 font-mono hidden md:inline">Quick Jump:</span>
                 <a href="./leaderboard" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-mono border border-slate-700/50 transition-colors">
                     ./leaderboard
                 </a>
                 <a href="./admin" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-mono border border-slate-700/50 transition-colors">
                     ./admin
+                </a>
+                <a href="./camera" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-mono border border-slate-700/50 transition-colors">
+                    ./camera
                 </a>
             </div>
         </div>
